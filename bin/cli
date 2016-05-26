@@ -1,0 +1,46 @@
+class Cli
+
+  def run
+    input_email
+    do_something?
+  end
+
+  def input_email
+    puts "What's your email"
+    email = gets.chomp
+    unless User.exists?(email: email)
+      @user = User.create(email: email)
+      puts "Welcome new user, your email address #{@user.email} will log you in from now on."
+    else
+      @user = User.find_by_email(email)
+    end
+  rescue RuntimeError
+    puts "Really, can't enter your own email?"
+    retry
+  end
+
+  def do_something?
+    puts "What would you like to do to me?"
+    puts "0. Create shortened url"
+    puts "1. Visit shortened url"
+    input = gets.chomp
+    if input == '0'
+      puts "Whats the url"
+      long_url = gets.chomp
+      short = ShortenedUrl.create_for_user_and_long_url!(@user, long_url)
+      puts "here's your shit! #{short.short_url}"
+    elsif input == '1'
+      puts "Type in the shortened url"
+      short_url = gets.chomp
+      raise "That doesn't exist Dumby!" unless ShortenedUrl.exists?(short_url: short_url)
+      short_url_obj = ShortenedUrl.find_by(short_url: short_url)
+      Visit.record_visit!(@user, short_url_obj)
+      Launchy.open(short_url_obj.long_url)
+    else
+      puts "really there was only two options and you still messed up?"
+      do_something?
+    end
+  end
+end
+
+Cli.new.run
